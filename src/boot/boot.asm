@@ -29,7 +29,7 @@ entry:
     mov cx, LOADER_SECTOR_COUNTS
     call read_disk_mode_16
 
-    jmp LOADER_BASE_ADDR
+    jmp LOADER_BASE_ADDR + 0x300    ; 因为在loader.bin前0x300存放了gdt和mem部分信息
 
 ;----------------------------------------
 ;   清屏函数,设置显示模式可清屏80*25  16色

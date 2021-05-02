@@ -1,0 +1,43 @@
+#################################################################
+# Bochs的配置文件
+# Configuration file for Bochs
+#################################################################
+
+# how much memory the emulated machine will have
+# 分配的内存大小MB
+megs: 64
+
+# filename of ROM images
+# ROM镜像路径(bochs的安装路径下)
+romimage:file=/usr/share/bochs/BIOS-bochs-latest
+vgaromimage:file=/usr/share/bochs/VGABIOS-lgpl-latest
+
+# which disk image will be used 
+# 这个是启动软盘，我们虚拟出来的那个omnitrix.img
+#floppya:1_44=omnitrix.img, status=inserted
+
+# choose the boot disk 
+# 确定启动方式(这里是硬盘启动)
+# boot: floppy
+boot: disk
+
+# 硬盘设置
+ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
+ata0-master: type=disk, path="omnitrix.img", mode=flat
+
+# where do we send log messages?
+# 日志输出位置
+log: bochs/bochsout.txt
+
+# disable the mouse
+# 是否允许鼠标(如果后面要写UI就要重新设置一下)
+mouse: enabled=0
+
+# 同步时钟
+clock: sync=realtime, time0=local, rtc_sync=1
+
+# enable key mapping ,using US layout as default
+# 键盘布局,默认美式键盘
+keyboard: keymap=/usr/share/bochs/keymaps/x11-pc-us.map
+
+# display_library: sdl

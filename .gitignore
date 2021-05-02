@@ -1,0 +1,8 @@
+.vscode
+bochs/bochsout.txt
+*.img
+*.o
+*.bin
+*.elf
+*.img
+*.lock

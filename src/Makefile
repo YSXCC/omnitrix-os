@@ -1,0 +1,72 @@
+BUILD_DIR = ./build
+AS = nasm
+CC = gcc
+LD = ld
+LIB = -I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/
+ASFLAGS = -f elf
+#CFLAGS = -m32 -Wall $(LIB) -c -nostdinc -fno-builtin -W -Wstrict-prototypes -Wmissing-prototypes -fno-stack-protector
+CFLAGS = -m32 -Wall $(LIB) -c -nostdinc -fno-builtin -fno-stack-protector
+LDFLAGS = -m elf_i386 -T script/kernel.ld -Map $(BUILD_DIR)/kernel.map
+OBJS = $(BUILD_DIR)/main.o $(BUILD_DIR)/init.o $(BUILD_DIR)/interrupt.o \
+       $(BUILD_DIR)/timer.o $(BUILD_DIR)/kernel.o $(BUILD_DIR)/print.o  \
+	   $(BUILD_DIR)/debug.o $(BUILD_DIR)/memory.o $(BUILD_DIR)/bitmap.o \
+	   $(BUILD_DIR)/string.o
+
+$(BUILD_DIR)/main.o: kernel/main.c lib/kernel/print.h \
+		lib/stdint.h kernel/init.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/init.o: kernel/init.c kernel/init.h lib/kernel/print.h \
+		lib/stdint.h kernel/interrupt.h device/timer.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/interrupt.o: kernel/interrupt.c kernel/interrupt.h \
+		lib/stdint.h kernel/global.h lib/kernel/io.h lib/kernel/print.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/timer.o: device/timer.c device/timer.h lib/stdint.h\
+		lib/kernel/io.h lib/kernel/print.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/debug.o: kernel/debug.c kernel/debug.h \
+		lib/kernel/print.h lib/stdint.h kernel/interrupt.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/string.o: lib/string.c lib/string.h lib/stdint.h kernel/global.h \
+		lib/stdint.h kernel/debug.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/bitmap.o: lib/kernel/bitmap.c lib/kernel/bitmap.h \
+		kernel/global.h lib/stdint.h lib/string.h lib/stdint.h \
+		lib/kernel/print.h kernel/interrupt.h kernel/debug.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/memory.o: kernel/memory.c kernel/memory.h lib/stdint.h  			\
+		lib/kernel/bitmap.h kernel/global.h  kernel/debug.h lib/kernel/print.h	\
+		lib/kernel/io.h kernel/interrupt.h lib/string.h lib/stdint.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/kernel.o: kernel/kernel.asm
+	$(AS) $(ASFLAGS) $< -o $@
+$(BUILD_DIR)/print.o: lib/kernel/print.asm
+	$(AS) $(ASFLAGS) $< -o $@
+
+$(BUILD_DIR)/kernel.elf: $(OBJS)
+	$(LD) $(LDFLAGS) $^ -o $@
+
+.PHONY : mk_dir build clean all
+
+all: mk_dir build
+
+mk_dir:
+ifeq ($(BUILD_DIR), $(wildcard $(BUILD_DIR)))
+	@echo  $(BUILD_DIR) exist
+else
+	@echo "    Create directory $(BUILD_DIR)" 
+	mkdir -p $(BUILD_DIR)
+endif
+
+build: $(BUILD_DIR)/kernel.elf
+
+clean:
+	cd $(BUILD_DIR) && rm -f ./*

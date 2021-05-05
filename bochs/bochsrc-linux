@@ -3,9 +3,12 @@
 # Configuration file for Bochs
 #################################################################
 
+cpu: model=core2_penryn_t9600, count=1, ips=50000000, reset_on_triple_fault=1, ignore_bad_msrs=1, msrs="msrs.def"
+cpu: cpuid_limit_winnt=0
+
 # how much memory the emulated machine will have
 # 分配的内存大小MB
-megs: 64
+megs: 32
 
 # filename of ROM images
 # ROM镜像路径(bochs的安装路径下)
@@ -34,7 +37,8 @@ log: bochs/bochsout.txt
 mouse: enabled=0
 
 # 同步时钟
-clock: sync=realtime, time0=local, rtc_sync=1
+# clock: sync=realtime, time0=local, rtc_sync=1
+clock: sync=none, time0=local 
 
 # enable key mapping ,using US layout as default
 # 键盘布局,默认美式键盘

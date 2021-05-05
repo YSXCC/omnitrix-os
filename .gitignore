@@ -1,5 +1,6 @@
 .vscode
 bochs/bochsout.txt
+src/build
 *.img
 *.o
 *.bin

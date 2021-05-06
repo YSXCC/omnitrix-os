@@ -73,9 +73,24 @@ static void general_intr_handler(uint8_t vec_nr) {
     if (vec_nr == 0x27 || vec_nr == 0x2f) { //* 0x2f是从片8259A上的最后一个irq引脚，保留
         return;     //* IRQ7和IRQ15会产生伪中断(spurious interrupt),无须处理。
     }
-    put_str("int vector: 0x");
-    put_int(vec_nr);
-    put_char('\n');
+    set_cursor(0);
+    int cursor_pos = 0;
+    while(cursor_pos < 320) {
+        put_char(' ');
+        cursor_pos++;
+    }
+
+    set_cursor(0);      //* 重置光标为屏幕左上角
+    put_str("!!!!!!!      excetion message begin  !!!!!!!!\n");
+    set_cursor(88);     //* 从第2行第8个字符开始打印
+    put_str(intr_name[vec_nr]);
+    if (vec_nr == 14) {	//* 若为Pagefault,将缺失的地址打印出来并悬停
+        int page_fault_vaddr = 0; 
+        asm ("movl %%cr2, %0" : "=r" (page_fault_vaddr));   //* cr2是存放造成page_fault的地址
+        put_str("\npage fault addr is ");put_int(page_fault_vaddr); 
+    }
+    put_str("\n!!!!!!!      excetion message end    !!!!!!!!\n");
+    while(1);
 }
 
 //* 完成一般中断处理函数注册及异常名称注册
@@ -141,6 +156,12 @@ enum intr_status intr_get_status() {
     uint32_t eflags = 0; 
     GET_EFLAGS(eflags);
     return (EFLAGS_IF & eflags) ? INTR_ON : INTR_OFF;
+}
+
+void register_handler(uint8_t vector_no, intr_handler function) {
+    //* idt_table数组中的函数是在进入中断后根据中断向量号调用的,
+    //* 见kernel/kernel.S的call [idt_table + %1*4]
+    idt_table[vector_no] = function; 
 }
 
 //* 完成有关中断的所有初始化工作

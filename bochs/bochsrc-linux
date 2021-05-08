@@ -27,6 +27,7 @@ boot: disk
 # 硬盘设置
 ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
 ata0-master: type=disk, path="omnitrix.img", mode=flat
+ata0-slave: type=disk, path="vhd.img", mode=flat
 
 # where do we send log messages?
 # 日志输出位置

@@ -8,6 +8,8 @@
 
 typedef void thread_func(void*);
 
+typedef int16_t pid_t;
+
 //* 进程或线程的状态
 enum task_status {
     TASK_RUNNING,
@@ -72,6 +74,7 @@ struct thread_stack {
 //* 进程或线程的pcb,程序控制块
 struct task_struct {
     uint32_t* self_kstack;  //* 各内核线程都用自己的内核栈
+    pid_t pid;
     enum task_status status;
     char name[16];
     uint8_t priority;
@@ -83,6 +86,7 @@ struct task_struct {
 
     uint32_t* pgdir;                      //* 用户进程页表
     struct virtual_addr userprog_vaddr;   //* 用户进程的虚拟地址
+    struct mem_block_desc u_block_desc[DESC_CNT];   //* 用户进程内存块描述符
 
     uint32_t stack_magic;   //* 用这串数字做栈的边界标记,用于检测栈的溢出
 };

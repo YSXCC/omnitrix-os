@@ -39,7 +39,7 @@ mouse: enabled=0
 
 # 同步时钟
 # clock: sync=realtime, time0=local, rtc_sync=1
-clock: sync=none, time0=local 
+# clock: sync=none, time0=local 
 
 # enable key mapping ,using US layout as default
 # 键盘布局,默认美式键盘

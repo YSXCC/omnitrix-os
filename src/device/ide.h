@@ -38,6 +38,8 @@ struct ide_channel {
    struct disk devices[2];          //* 一个通道上连接两个硬盘，一主一从
 };
 
+extern struct list partition_list;
+
 void intr_hd_handler(uint8_t irq_no);
 void ide_init(void);
 extern uint8_t channel_cnt;

@@ -4,6 +4,7 @@
 #include "interrupt.h"
 #include "thread.h"
 #include "debug.h"
+#include "print.h"
 
 #define IRQ0_FREQUENCY       100
 #define INPUT_FREQUENCY      1193180

@@ -8,6 +8,7 @@ KERNEL_ELF := $(BUILD_PATH)/kernel.elf
 
 DD = dd
 IMG := $(TOP_PATH)/omnitrix.img
+# IMG := $(TOP_PATH)/hd60M.img
 
 LOADER_LOGICAL_SECTOR   =     2
 # load默认占4个扇区,共2kb

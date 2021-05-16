@@ -200,7 +200,7 @@ static void intr_keyboard_handler(void) {
         } else if (scancode == alt_l_make || scancode == alt_r_make) {
             alt_status = true;
         } else if (scancode == caps_lock_make) {
-        caps_lock_status = !caps_lock_status;
+            caps_lock_status = !caps_lock_status;
         }
     } else {
         put_str("unknown key\n");

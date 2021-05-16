@@ -291,24 +291,24 @@ static void partition_scan(struct disk* hd, uint32_t ext_lba) {
                 partition_scan(hd, p->start_lba);
             }
         } else if (p->fs_type != 0) {   //* 若是有效的分区类型
-        if (ext_lba == 0) {        //* 此时全是主分区
-            hd->prim_parts[p_no].start_lba = ext_lba + p->start_lba;
-            hd->prim_parts[p_no].sec_cnt = p->sec_cnt;
-            hd->prim_parts[p_no].my_disk = hd;
-            list_append(&partition_list, &hd->prim_parts[p_no].part_tag);
-            sprintf(hd->prim_parts[p_no].name, "%s%d", hd->name, p_no + 1);
-            p_no++;
-            ASSERT(p_no < 4);   //* 0,1,2,3
-        } else {
-            hd->logic_parts[l_no].start_lba = ext_lba + p->start_lba;
-            hd->logic_parts[l_no].sec_cnt = p->sec_cnt;
-            hd->logic_parts[l_no].my_disk = hd;
-            list_append(&partition_list, &hd->logic_parts[l_no].part_tag);
-            sprintf(hd->logic_parts[l_no].name, "%s%d", hd->name, l_no + 5); //* 逻辑分区数字是从5开始,主分区是1～4.
-            l_no++;
-            if (l_no >= 8)  //* 只支持8个逻辑分区,避免数组越界
-                return;
-            }
+            if (ext_lba == 0) {        //* 此时全是主分区
+                hd->prim_parts[p_no].start_lba = ext_lba + p->start_lba;
+                hd->prim_parts[p_no].sec_cnt = p->sec_cnt;
+                hd->prim_parts[p_no].my_disk = hd;
+                list_append(&partition_list, &hd->prim_parts[p_no].part_tag);
+                sprintf(hd->prim_parts[p_no].name, "%s%d", hd->name, p_no + 1);
+                p_no++;
+                ASSERT(p_no < 4);   //* 0,1,2,3
+            } else {
+                hd->logic_parts[l_no].start_lba = ext_lba + p->start_lba;
+                hd->logic_parts[l_no].sec_cnt = p->sec_cnt;
+                hd->logic_parts[l_no].my_disk = hd;
+                list_append(&partition_list, &hd->logic_parts[l_no].part_tag);
+                sprintf(hd->logic_parts[l_no].name, "%s%d", hd->name, l_no + 5); //* 逻辑分区数字是从5开始,主分区是1～4.
+                l_no++;
+                if (l_no >= 8)  //* 只支持8个逻辑分区,避免数组越界
+                    return;
+            }   
         } 
         p++;
     }
@@ -383,7 +383,7 @@ void ide_init() {
             hd->dev_no = dev_no;
             sprintf(hd->name, "sd%c", 'a' + channel_no * 2 + dev_no);
             identify_disk(hd);          //* 获取硬盘参数
-            if (dev_no != 0) {          //* 内核本身的裸硬盘(hd60M.img)不处理
+            if (dev_no != 0) {          //* 内核本身的裸硬盘不处理
                 partition_scan(hd, 0);  //* 扫描该硬盘上的分区  
             }
             p_no = 0, l_no = 0;

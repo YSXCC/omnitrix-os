@@ -2,7 +2,6 @@
 #define __FS_FS_H
 
 #include "stdint.h"
-#include "ide.h"
 
 #define MAX_FILES_PER_PART 4096     //* 每个分区所支持最大创建的文件数
 #define BITS_PER_SECTOR 4096        //* 每扇区的位数
@@ -50,6 +49,7 @@ struct stat {
 extern struct partition* cur_part;
 
 void filesys_init(void);
+char* path_parse(char* pathname, char* name_store);
 int32_t path_depth_cnt(char* pathname);
 int32_t sys_open(const char* pathname, uint8_t flags);
 int32_t sys_close(int32_t fd);
@@ -66,5 +66,8 @@ int32_t sys_rmdir(const char* pathname);
 char* sys_getcwd(char* buf, uint32_t size);
 int32_t sys_chdir(const char* path);
 int32_t sys_stat(const char* path, struct stat* buf);
+void sys_putchar(char char_asci);
+uint32_t fd_local2global(uint32_t local_fd);
+void sys_help(void);
 
 #endif  // __FS_FS_H

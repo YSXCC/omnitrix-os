@@ -8,8 +8,6 @@
 #include "sync.h"
 #include "interrupt.h"
 
-#define PG_SIZE 4096
-
 #define MEM_BITMAP_BASE 0xC009A000
 
 #define PDE_IDX(addr) ((addr & 0xffc00000) >> 22)
@@ -106,7 +104,6 @@ static void page_table_add(void* _vaddr, void* _page_phyaddr) {
             *pte = (page_phyaddr | PG_US_U | PG_RW_W | PG_P_1);      //* US=1,RW=1,P=1
         } else {                      //* 应该不会执行到这，因为上面的ASSERT会先执行。
             PANIC("pte repeat");
-            *pte = (page_phyaddr | PG_US_U | PG_RW_W | PG_P_1);      //* US=1,RW=1,P=1
         }
     } else {    //* 页目录项不存在,所以要先创建页目录再创建页表项.
         //* 页表中用到的页框一律从内核空间分配
@@ -164,7 +161,9 @@ void* get_kernel_pages(uint32_t pg_cnt) {
 void* get_user_pages(uint32_t pg_cnt) {
     lock_acquire(&user_pool.lock);
     void* vaddr = malloc_page(PF_USER, pg_cnt);
-    memset(vaddr, 0, pg_cnt * PG_SIZE);
+    if (vaddr != NULL) {    //* 若分配的地址不为空,将页框清0后返回
+        memset(vaddr, 0, pg_cnt * PG_SIZE);
+    }
     lock_release(&user_pool.lock);
     return vaddr;
 }
@@ -181,7 +180,7 @@ void* get_a_page(enum pool_flags pf, uint32_t vaddr) {
     //* 若当前是用户进程申请用户内存,就修改用户进程自己的虚拟地址位图
     if (cur->pgdir != NULL && pf == PF_USER) {
         bit_idx = (vaddr - cur->userprog_vaddr.vaddr_start) / PG_SIZE;
-        ASSERT(bit_idx > 0);
+        ASSERT(bit_idx >= 0);
         bitmap_set(&cur->userprog_vaddr.vaddr_bitmap, bit_idx, 1);
 
     } else if (cur->pgdir == NULL && pf == PF_KERNEL){
@@ -195,11 +194,26 @@ void* get_a_page(enum pool_flags pf, uint32_t vaddr) {
 
     void* page_phyaddr = palloc(mem_pool);
     if (page_phyaddr == NULL) {
+        lock_release(&mem_pool->lock);
         return NULL;
     }
     page_table_add((void*)vaddr, page_phyaddr); 
     lock_release(&mem_pool->lock);
     return (void*)vaddr;
+}
+
+//* 安装1页大小的vaddr,专门针对fork时虚拟地址位图无须操作的情况
+void* get_a_page_without_opvaddrbitmap(enum pool_flags pf, uint32_t vaddr) {
+    struct pool *mem_pool = pf & PF_KERNEL ? &kernel_pool : &user_pool;
+    lock_acquire(&mem_pool->lock);
+    void *page_phyaddr = palloc(mem_pool);
+    if (page_phyaddr == NULL) {
+        lock_release(&mem_pool->lock);
+        return NULL;
+    }
+    page_table_add((void *)vaddr, page_phyaddr);
+    lock_release(&mem_pool->lock);
+    return (void *)vaddr;
 }
 
 //* 得到虚拟地址映射到的物理地址
@@ -212,7 +226,7 @@ uint32_t addr_v2p(uint32_t vaddr) {
 
 //* 初始化内存池
 static void mem_pool_init(uint32_t all_mem) {
-put_str("   mem_pool_init start\n");
+    put_str("   mem_pool_init start\n");
     uint32_t page_table_size = PG_SIZE * 256;           //* 页表大小= 1页的页目录表+第0和第768个页目录项指向同一个页表+
                                                         //* 第769~1022个页目录项共指向254个页表,共256个页框
     uint32_t used_mem = page_table_size + 0x100000;     //* 0x100000为低端1M内存
@@ -235,7 +249,7 @@ put_str("   mem_pool_init start\n");
     user_pool.pool_size	 = user_free_pages * PG_SIZE;
 
     kernel_pool.pool_bitmap.btmp_bytes_len = kbm_length;
-    user_pool.pool_bitmap.btmp_bytes_len	  = ubm_length;
+    user_pool.pool_bitmap.btmp_bytes_len   = ubm_length;
 
     //* 内核使用的最高地址是0xc009f000,这是主线程的栈地址.(内核的大小预计为70K左右)
     //* 32M内存占用的位图是2k.内核内存池的位图先定在MEM_BITMAP_BASE(0xc009a000)处.
@@ -317,7 +331,7 @@ void* sys_malloc(uint32_t size) {
         descs = cur_thread->u_block_desc;
     }
 
-    //* 若申请的内存不在内存池容量范围内则直接返回NULL */
+    //* 若申请的内存不在内存池容量范围内则直接返回NULL
     if (!(size > 0 && size < pool_size)) {
         return NULL;
     }
@@ -349,7 +363,7 @@ void* sys_malloc(uint32_t size) {
       
         //* 从内存块描述符中匹配合适的内存块规格 */
         for (desc_idx = 0; desc_idx < DESC_CNT; desc_idx++) {
-            if (size <= descs[desc_idx].block_size) {  // 从小往大后,找到后退出
+            if (size <= descs[desc_idx].block_size) {  //* 从小往大后,找到后退出
                 break;
             }
         }
@@ -357,14 +371,14 @@ void* sys_malloc(uint32_t size) {
         //* 若mem_block_desc的free_list中已经没有可用的mem_block,
         //* 就创建新的arena提供mem_block
         if (list_empty(&descs[desc_idx].free_list)) {
-            a = malloc_page(PF, 1);       // 分配1页框做为arena
+            a = malloc_page(PF, 1);       //* 分配1页框做为arena
             if (a == NULL) {
                 lock_release(&mem_pool->lock);
                 return NULL;
             }
             memset(a, 0, PG_SIZE);
             //* 对于分配的小块内存,将desc置为相应内存块描述符, 
-            //* cnt置为此arena可用的内存块数,large置为false */
+            //* cnt置为此arena可用的内存块数,large置为false
             a->desc = &descs[desc_idx];
             a->large = false;
             a->cnt = descs[desc_idx].blocks_per_arena;
@@ -421,7 +435,7 @@ static void vaddr_remove(enum pool_flags pf, void* _vaddr, uint32_t pg_cnt) {
         bit_idx_start = (vaddr - kernel_vaddr.vaddr_start) / PG_SIZE;
         while(cnt < pg_cnt) {
             bitmap_set(&kernel_vaddr.vaddr_bitmap, bit_idx_start + cnt++, 0);
-      }
+        }
     } else {    //* 用户虚拟内存池
         struct task_struct* cur_thread = running_thread();
         bit_idx_start = (vaddr - cur_thread->userprog_vaddr.vaddr_start) / PG_SIZE;
@@ -522,6 +536,20 @@ void sys_free(void* ptr) {
         }
         lock_release(&mem_pool->lock); 
     }
+}
+
+//* 根据物理页框地址pg_phy_addr在相应的内存池的位图清0,不改动页表
+void free_a_phy_page(uint32_t pg_phy_addr) {
+    struct pool *mem_pool;
+    uint32_t bit_idx = 0;
+    if (pg_phy_addr >= user_pool.phy_addr_start) {
+        mem_pool = &user_pool;
+        bit_idx = (pg_phy_addr - user_pool.phy_addr_start) / PG_SIZE;
+    } else {
+        mem_pool = &kernel_pool;
+        bit_idx = (pg_phy_addr - kernel_pool.phy_addr_start) / PG_SIZE;
+    }
+    bitmap_set(&mem_pool->pool_bitmap, bit_idx, 0);
 }
 
 //* 内存管理部分初始化入口

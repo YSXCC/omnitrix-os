@@ -15,7 +15,7 @@ struct dir root_dir;             //* 根目录
 
 //* 打开根目录
 void open_root_dir(struct partition* part) {
-root_dir.inode = inode_open(part, part->sb->root_inode_no);
+    root_dir.inode = inode_open(part, part->sb->root_inode_no);
     root_dir.dir_pos = 0;
 }
 
@@ -29,8 +29,7 @@ struct dir* dir_open(struct partition* part, uint32_t inode_no) {
 
 //* 在part分区内的pdir目录内寻找名为name的文件或目录,
 //* 找到后返回true并将其目录项存入dir_e,否则返回false
-bool search_dir_entry(struct partition* part, struct dir* pdir, \
-		     const char* name, struct dir_entry* dir_e) {
+bool search_dir_entry(struct partition* part, struct dir* pdir, const char* name, struct dir_entry* dir_e) {
     uint32_t block_cnt = 140;    //* 12个直接块+128个一级间接块=140块
 
     //* 12个直接块大小+128个间接块,共560字节

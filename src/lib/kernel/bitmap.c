@@ -21,7 +21,8 @@ int bitmap_scan(struct bitmap* btmp, uint32_t cnt) {
     while ((0xff == btmp->bits[idx_byte]) && (idx_byte < btmp->btmp_bytes_len)) {
         idx_byte++;
     }
-
+    
+    ASSERT(idx_byte < btmp->btmp_bytes_len);
     if (idx_byte == btmp->btmp_bytes_len) {
         return -1;
     }
